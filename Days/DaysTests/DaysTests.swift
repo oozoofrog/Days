@@ -77,6 +77,53 @@ struct DaysTests {
         #expect(repository.moments.last?.note == "여행")
         #expect(viewModel.snapshot.savedWords.first == "여행")
     }
+
+    @Test func backgroundPhaseAutosavesLatestWord() {
+        let firstVisit = makeDate(year: 2026, month: 3, day: 8, hour: 9, minute: 0)
+        let secondVisit = makeDate(year: 2026, month: 3, day: 9, hour: 12, minute: 30)
+        let clock = StubClock([firstVisit, secondVisit])
+        let repository = InMemoryVisitRepository()
+        let viewModel = DaysTimelineViewModel(repository: repository, now: clock.next)
+
+        viewModel.handleScenePhaseChange(.active)
+        viewModel.handleScenePhaseChange(.background)
+        viewModel.handleScenePhaseChange(.active)
+        viewModel.noteDraft = "겨울"
+
+        viewModel.handleScenePhaseChange(.background)
+
+        #expect(repository.moments.last?.note == "겨울")
+    }
+
+    @Test func timelineComposerBuildsTranslatedAndRhythmLines() {
+        let firstVisit = VisitMoment(id: UUID(), visitedAt: makeDate(year: 2026, month: 3, day: 8, hour: 9, minute: 0), note: "")
+        let secondVisit = VisitMoment(id: UUID(), visitedAt: makeDate(year: 2026, month: 3, day: 9, hour: 9, minute: 0), note: "")
+        let thirdVisit = VisitMoment(id: UUID(), visitedAt: makeDate(year: 2026, month: 3, day: 11, hour: 12, minute: 0), note: "여행")
+        let snapshot = VisitSnapshot(moments: [firstVisit, secondVisit, thirdVisit])
+
+        guard case .timeline(let presentation) = TimelineComposer.makePresentation(from: snapshot) else {
+            Issue.record("세 번 이상 방문한 경우 타임라인 화면이어야 합니다.")
+            return
+        }
+
+        #expect(presentation.translatedLine == "해가 3번 졌습니다.")
+        #expect(presentation.rhythmLine == "이번에는 지난번보다 조금 더 늦게 돌아왔네요.")
+        #expect(presentation.savedWords == ["여행"])
+    }
+
+    @Test func visitDateCorrectionMakesMomentsMonotonic() {
+        let firstVisit = makeDate(year: 2026, month: 3, day: 8, hour: 9, minute: 0)
+        let earlierVisit = makeDate(year: 2026, month: 3, day: 8, hour: 8, minute: 30)
+        let laterVisit = makeDate(year: 2026, month: 3, day: 8, hour: 9, minute: 30)
+
+        let correctedDate = SwiftDataVisitLocalRepository.effectiveVisitDate(for: earlierVisit, lastDate: firstVisit)
+        let untouchedDate = SwiftDataVisitLocalRepository.effectiveVisitDate(for: laterVisit, lastDate: firstVisit)
+        let initialDate = SwiftDataVisitLocalRepository.effectiveVisitDate(for: firstVisit, lastDate: nil)
+
+        #expect(correctedDate == firstVisit.addingTimeInterval(1))
+        #expect(untouchedDate == laterVisit)
+        #expect(initialDate == firstVisit)
+    }
 }
 
 @MainActor

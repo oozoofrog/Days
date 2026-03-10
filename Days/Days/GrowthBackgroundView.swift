@@ -10,9 +10,9 @@ struct GrowthBackgroundView: View {
             ZStack {
                 LinearGradient(
                     colors: [
-                        Color(red: 0.05, green: 0.08, blue: 0.14),
-                        Color(red: 0.08, green: 0.11, blue: 0.19),
-                        Color(red: 0.11, green: 0.09, blue: 0.16)
+                        DaysTheme.Colors.backgroundStart,
+                        DaysTheme.Colors.backgroundMid,
+                        DaysTheme.Colors.backgroundEnd
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -23,8 +23,8 @@ struct GrowthBackgroundView: View {
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    Color.white.opacity(0.12),
-                                    Color.cyan.opacity(0.03)
+                                    DaysTheme.Colors.primaryText.opacity(0.12),
+                                    DaysTheme.Colors.accent.opacity(0.03)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -35,7 +35,7 @@ struct GrowthBackgroundView: View {
                         .position(position(for: index, in: size))
                 }
             }
-            .overlay(Color.black.opacity(0.12))
+            .overlay(DaysTheme.Colors.shadow)
             .ignoresSafeArea()
         }
     }

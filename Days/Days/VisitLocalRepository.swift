@@ -19,6 +19,18 @@ final class SwiftDataVisitLocalRepository: VisitLocalRepository {
         self.context = container.mainContext
     }
 
+    nonisolated static func effectiveVisitDate(for proposedDate: Date, lastDate: Date?) -> Date {
+        guard let lastDate else {
+            return proposedDate
+        }
+
+        if proposedDate <= lastDate {
+            return lastDate.addingTimeInterval(1)
+        }
+
+        return proposedDate
+    }
+
     func fetchMoments() throws -> [VisitMoment] {
         let descriptor = FetchDescriptor<VisitEntry>(sortBy: [SortDescriptor(\.visitedAt)])
         return try context.fetch(descriptor).map(\.moment)
@@ -27,13 +39,7 @@ final class SwiftDataVisitLocalRepository: VisitLocalRepository {
     @discardableResult
     func recordVisit(at date: Date) throws -> VisitMoment {
         let lastDate = try fetchMoments().last?.visitedAt
-        let effectiveDate: Date
-
-        if let lastDate, date <= lastDate {
-            effectiveDate = lastDate.addingTimeInterval(1)
-        } else {
-            effectiveDate = date
-        }
+        let effectiveDate = Self.effectiveVisitDate(for: date, lastDate: lastDate)
 
         let entry = VisitEntry(visitedAt: effectiveDate)
         context.insert(entry)
