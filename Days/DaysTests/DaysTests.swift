@@ -22,6 +22,42 @@ struct DaysTests {
         }
     }
 
+    @Test func inactiveThenActiveOnFirstLaunchCreatesQuietPresentation() {
+        let clock = StubClock([
+            makeDate(year: 2026, month: 3, day: 8, hour: 9, minute: 0)
+        ])
+        let repository = InMemoryVisitRepository()
+        let viewModel = DaysTimelineViewModel(repository: repository, now: clock.next)
+
+        viewModel.handleScenePhaseChange(.inactive)
+        viewModel.handleScenePhaseChange(.active)
+
+        #expect(repository.moments.count == 1)
+        guard case .quiet = viewModel.presentation else {
+            Issue.record("첫 실행이 inactive에서 시작해도 첫 활성화 시 조용한 첫 방문 상태여야 합니다.")
+            return
+        }
+    }
+
+    @Test func inactiveThenActiveOnColdLaunchWithExistingVisitRecordsReturnVisit() {
+        let firstVisit = makeDate(year: 2026, month: 3, day: 8, hour: 9, minute: 0)
+        let secondVisit = makeDate(year: 2026, month: 3, day: 9, hour: 12, minute: 30)
+        let clock = StubClock([secondVisit])
+        let repository = InMemoryVisitRepository()
+        repository.moments = [VisitMoment(id: UUID(), visitedAt: firstVisit, note: "")]
+        let viewModel = DaysTimelineViewModel(repository: repository, now: clock.next)
+
+        viewModel.handleScenePhaseChange(.inactive)
+        viewModel.handleScenePhaseChange(.active)
+
+        #expect(repository.moments.count == 2)
+        #expect(viewModel.snapshot.latestInterval == secondVisit.timeIntervalSince(firstVisit))
+        guard case .timeline = viewModel.presentation else {
+            Issue.record("기존 방문 기록이 있을 때 cold launch 후 첫 활성화는 재방문으로 기록되어야 합니다.")
+            return
+        }
+    }
+
     @Test func backgroundReturnCreatesTimelinePresentation() {
         let firstVisit = makeDate(year: 2026, month: 3, day: 8, hour: 9, minute: 0)
         let secondVisit = makeDate(year: 2026, month: 3, day: 9, hour: 12, minute: 30)

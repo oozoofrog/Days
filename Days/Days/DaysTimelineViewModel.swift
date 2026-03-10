@@ -10,7 +10,8 @@ final class DaysTimelineViewModel {
     private let now: () -> Date
     private let logger = Logger(subsystem: "com.oozoofrog.ios.Days", category: "DaysTimelineViewModel")
 
-    private var lastScenePhase: ScenePhase?
+    private var hasSeenActivePhase = false
+    private var hasEnteredBackgroundSinceLastVisit = false
     private(set) var snapshot = VisitSnapshot(moments: [])
     private(set) var presentation: JourneyPresentation = .loading
     var noteDraft = ""
@@ -39,9 +40,17 @@ final class DaysTimelineViewModel {
     }
 
     func handleScenePhaseChange(_ newPhase: ScenePhase) {
-        defer { lastScenePhase = newPhase }
+        defer {
+            if newPhase == .active {
+                hasSeenActivePhase = true
+            }
+            if newPhase == .background {
+                hasEnteredBackgroundSinceLastVisit = true
+            }
+        }
 
         if shouldRecordVisit(for: newPhase) {
+            hasEnteredBackgroundSinceLastVisit = false
             recordVisit()
             return
         }
@@ -74,12 +83,15 @@ final class DaysTimelineViewModel {
     }
 
     private func shouldRecordVisit(for newPhase: ScenePhase) -> Bool {
-        switch (lastScenePhase, newPhase) {
-        case (nil, .active), (.background, .active):
-            return true
-        default:
+        guard newPhase == .active else {
             return false
         }
+
+        if hasSeenActivePhase == false {
+            return true
+        }
+
+        return hasEnteredBackgroundSinceLastVisit
     }
 
     private func recordVisit() {
