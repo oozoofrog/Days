@@ -44,7 +44,7 @@ struct DaysTests {
         let secondVisit = makeDate(year: 2026, month: 3, day: 9, hour: 12, minute: 30)
         let clock = StubClock([secondVisit])
         let repository = InMemoryVisitRepository()
-        repository.moments = [VisitMoment(id: UUID(), visitedAt: firstVisit, note: "")]
+        repository.moments = [VisitMoment(id: UUID(), visitedAt: firstVisit, word: "", reflection: "")]
         let viewModel = DaysTimelineViewModel(repository: repository, now: clock.next)
 
         viewModel.handleScenePhaseChange(.inactive)
@@ -96,7 +96,7 @@ struct DaysTests {
         #expect(repository.moments.count == 1)
     }
 
-    @Test func saveCurrentWordUpdatesLatestVisit() {
+    @Test func saveCurrentWordUpdatesLatestVisitAndOpensReflectionComposer() {
         let firstVisit = makeDate(year: 2026, month: 3, day: 8, hour: 9, minute: 0)
         let secondVisit = makeDate(year: 2026, month: 3, day: 9, hour: 12, minute: 30)
         let clock = StubClock([firstVisit, secondVisit])
@@ -107,11 +107,32 @@ struct DaysTests {
         viewModel.handleScenePhaseChange(.background)
         viewModel.handleScenePhaseChange(.active)
 
-        viewModel.noteDraft = "여행"
-        viewModel.saveCurrentNote()
+        viewModel.wordDraft = "여행"
+        viewModel.saveCurrentWord()
 
-        #expect(repository.moments.last?.note == "여행")
+        #expect(repository.moments.last?.word == "여행")
         #expect(viewModel.snapshot.savedWords.first == "여행")
+        #expect(viewModel.showsReflectionComposer)
+    }
+
+    @Test func saveCurrentReflectionUpdatesLatestVisit() {
+        let firstVisit = makeDate(year: 2026, month: 3, day: 8, hour: 9, minute: 0)
+        let secondVisit = makeDate(year: 2026, month: 3, day: 9, hour: 12, minute: 30)
+        let clock = StubClock([firstVisit, secondVisit])
+        let repository = InMemoryVisitRepository()
+        let viewModel = DaysTimelineViewModel(repository: repository, now: clock.next)
+
+        viewModel.handleScenePhaseChange(.active)
+        viewModel.handleScenePhaseChange(.background)
+        viewModel.handleScenePhaseChange(.active)
+        viewModel.wordDraft = "산책"
+        viewModel.saveCurrentWord()
+
+        viewModel.reflectionDraft = "해 질 무렵 골목 공기가 오래 남았어요."
+        viewModel.saveCurrentReflection()
+
+        #expect(repository.moments.last?.reflection == "해 질 무렵 골목 공기가 오래 남았어요.")
+        #expect(viewModel.snapshot.latestWrittenMoment?.reflection == "해 질 무렵 골목 공기가 오래 남았어요.")
     }
 
     @Test func backgroundPhaseAutosavesLatestWord() {
@@ -124,17 +145,74 @@ struct DaysTests {
         viewModel.handleScenePhaseChange(.active)
         viewModel.handleScenePhaseChange(.background)
         viewModel.handleScenePhaseChange(.active)
-        viewModel.noteDraft = "겨울"
+        viewModel.wordDraft = "겨울"
 
         viewModel.handleScenePhaseChange(.background)
 
-        #expect(repository.moments.last?.note == "겨울")
+        #expect(repository.moments.last?.word == "겨울")
     }
 
-    @Test func timelineComposerBuildsTranslatedAndRhythmLines() {
-        let firstVisit = VisitMoment(id: UUID(), visitedAt: makeDate(year: 2026, month: 3, day: 8, hour: 9, minute: 0), note: "")
-        let secondVisit = VisitMoment(id: UUID(), visitedAt: makeDate(year: 2026, month: 3, day: 9, hour: 9, minute: 0), note: "")
-        let thirdVisit = VisitMoment(id: UUID(), visitedAt: makeDate(year: 2026, month: 3, day: 11, hour: 12, minute: 0), note: "여행")
+    @Test func backgroundPhaseAutosavesLatestReflection() {
+        let firstVisit = makeDate(year: 2026, month: 3, day: 8, hour: 9, minute: 0)
+        let secondVisit = makeDate(year: 2026, month: 3, day: 9, hour: 12, minute: 30)
+        let clock = StubClock([firstVisit, secondVisit])
+        let repository = InMemoryVisitRepository()
+        let viewModel = DaysTimelineViewModel(repository: repository, now: clock.next)
+
+        viewModel.handleScenePhaseChange(.active)
+        viewModel.handleScenePhaseChange(.background)
+        viewModel.handleScenePhaseChange(.active)
+        viewModel.wordDraft = "노을"
+        viewModel.saveCurrentWord()
+        viewModel.reflectionDraft = "생각보다 오래 붉은 하늘을 보고 있었어요."
+
+        viewModel.handleScenePhaseChange(.background)
+
+        #expect(repository.moments.last?.reflection == "생각보다 오래 붉은 하늘을 보고 있었어요.")
+    }
+
+    @Test func skipReflectionHidesComposerAndAllowsReentry() {
+        let firstVisit = makeDate(year: 2026, month: 3, day: 8, hour: 9, minute: 0)
+        let secondVisit = makeDate(year: 2026, month: 3, day: 9, hour: 12, minute: 30)
+        let clock = StubClock([firstVisit, secondVisit])
+        let repository = InMemoryVisitRepository()
+        let viewModel = DaysTimelineViewModel(repository: repository, now: clock.next)
+
+        viewModel.handleScenePhaseChange(.active)
+        viewModel.handleScenePhaseChange(.background)
+        viewModel.handleScenePhaseChange(.active)
+        viewModel.wordDraft = "소풍"
+        viewModel.saveCurrentWord()
+
+        viewModel.skipReflectionEntry()
+
+        #expect(viewModel.showsReflectionComposer == false)
+        #expect(viewModel.canStartReflection)
+
+        viewModel.beginReflectionEntry()
+
+        #expect(viewModel.showsReflectionComposer)
+    }
+
+    @Test func timelineComposerBuildsTranslatedRhythmLinesAndLatestPreview() {
+        let firstVisit = VisitMoment(
+            id: UUID(),
+            visitedAt: makeDate(year: 2026, month: 3, day: 8, hour: 9, minute: 0),
+            word: "",
+            reflection: ""
+        )
+        let secondVisit = VisitMoment(
+            id: UUID(),
+            visitedAt: makeDate(year: 2026, month: 3, day: 9, hour: 9, minute: 0),
+            word: "",
+            reflection: ""
+        )
+        let thirdVisit = VisitMoment(
+            id: UUID(),
+            visitedAt: makeDate(year: 2026, month: 3, day: 11, hour: 12, minute: 0),
+            word: "여행",
+            reflection: "낯선 공기를 오래 맡고 돌아온 날이었어요."
+        )
         let snapshot = VisitSnapshot(moments: [firstVisit, secondVisit, thirdVisit])
 
         guard case .timeline(let presentation) = TimelineComposer.makePresentation(from: snapshot) else {
@@ -145,6 +223,7 @@ struct DaysTests {
         #expect(presentation.translatedLine == "해가 3번 졌습니다.")
         #expect(presentation.rhythmLine == "이번에는 지난번보다 조금 더 늦게 돌아왔네요.")
         #expect(presentation.savedWords == ["여행"])
+        #expect(presentation.latestRecordedEntry == LatestRecordedEntryPresentation(word: "여행", reflection: "낯선 공기를 오래 맡고 돌아온 날이었어요."))
     }
 
     @Test func visitDateCorrectionMakesMomentsMonotonic() {
@@ -172,14 +251,19 @@ private final class InMemoryVisitRepository: VisitLocalRepository {
 
     @discardableResult
     func recordVisit(at date: Date) throws -> VisitMoment {
-        let moment = VisitMoment(id: UUID(), visitedAt: date, note: "")
+        let moment = VisitMoment(id: UUID(), visitedAt: date, word: "", reflection: "")
         moments.append(moment)
         return moment
     }
 
-    func updateNote(for visitID: UUID, note: String) throws {
+    func updateVisitContent(for visitID: UUID, word: String, reflection: String) throws {
         guard let index = moments.firstIndex(where: { $0.id == visitID }) else { return }
-        moments[index] = VisitMoment(id: moments[index].id, visitedAt: moments[index].visitedAt, note: note.normalizedVisitWord)
+        moments[index] = VisitMoment(
+            id: moments[index].id,
+            visitedAt: moments[index].visitedAt,
+            word: word.normalizedVisitWord,
+            reflection: reflection.normalizedVisitReflection
+        )
     }
 }
 

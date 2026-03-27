@@ -41,7 +41,13 @@ struct DaysLaunchConfiguration {
         guard seedVisits.isEmpty == false else { return }
 
         for visit in seedVisits {
-            context.insert(VisitEntry(visitedAt: visit.visitedAt, note: visit.note))
+            context.insert(
+                VisitEntry(
+                    visitedAt: visit.visitedAt,
+                    note: visit.note,
+                    reflection: visit.reflection
+                )
+            )
         }
         try context.save()
     }
@@ -54,18 +60,26 @@ struct DaysLaunchConfiguration {
             return [
                 SeedVisit(
                     visitedAt: Self.makeDate(year: 2026, month: 3, day: 8, hour: 9, minute: 0),
-                    note: ""
+                    note: "",
+                    reflection: ""
                 )
             ]
         case .timeline:
             return [
                 SeedVisit(
                     visitedAt: Self.makeDate(year: 2026, month: 3, day: 8, hour: 9, minute: 0),
-                    note: ""
+                    note: "",
+                    reflection: ""
                 ),
                 SeedVisit(
                     visitedAt: Self.makeDate(year: 2026, month: 3, day: 9, hour: 12, minute: 30),
-                    note: "여행"
+                    note: "여행",
+                    reflection: "낯선 공기를 오래 맡고 돌아온 날이었어요."
+                ),
+                SeedVisit(
+                    visitedAt: Self.makeDate(year: 2026, month: 3, day: 11, hour: 20, minute: 0),
+                    note: "",
+                    reflection: ""
                 )
             ]
         }
@@ -87,6 +101,7 @@ struct DaysLaunchConfiguration {
 private struct SeedVisit {
     let visitedAt: Date
     let note: String
+    let reflection: String
 }
 
 @MainActor
@@ -100,7 +115,7 @@ private struct FailingVisitRepository: VisitLocalRepository {
         throw LaunchScenarioError.simulatedFailure
     }
 
-    func updateNote(for visitID: UUID, note: String) throws {
+    func updateVisitContent(for visitID: UUID, word: String, reflection: String) throws {
         throw LaunchScenarioError.simulatedFailure
     }
 }
