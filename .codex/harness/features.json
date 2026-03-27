@@ -1,0 +1,38 @@
+[
+  {
+    "id": "model-word-reflection",
+    "title": "저장 모델과 스냅샷을 word + reflection 구조로 확장",
+    "status": "completed",
+    "issue": 7
+  },
+  {
+    "id": "viewmodel-state",
+    "title": "ViewModel에 draft/입력 단계 상태 추가",
+    "status": "completed",
+    "issue": 8
+  },
+  {
+    "id": "timeline-input-flow",
+    "title": "타임라인 카드에 word → reflection 입력 플로우 추가",
+    "status": "completed",
+    "issue": 9
+  },
+  {
+    "id": "skip-reentry-ux",
+    "title": "reflection 스킵 및 재진입 UX 구현",
+    "status": "completed",
+    "issue": 10
+  },
+  {
+    "id": "latest-preview",
+    "title": "최신 기록 프리뷰 추가",
+    "status": "completed",
+    "issue": 11
+  },
+  {
+    "id": "tests-validation",
+    "title": "테스트와 런치 시나리오 갱신",
+    "status": "completed",
+    "issue": 12
+  }
+]
