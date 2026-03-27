@@ -56,9 +56,16 @@ struct QuietCardView: View {
 
 struct TimelineCardView: View {
     let presentation: TimelinePresentation
-    @Binding var noteDraft: String
-    let canSaveNote: Bool
-    let onSave: () -> Void
+    @Binding var wordDraft: String
+    @Binding var reflectionDraft: String
+    let canSaveWord: Bool
+    let canSaveReflection: Bool
+    let showsReflectionComposer: Bool
+    let canStartReflection: Bool
+    let onSaveWord: () -> Void
+    let onStartReflection: () -> Void
+    let onSkipReflection: () -> Void
+    let onSaveReflection: () -> Void
 
     private let columns = [
         GridItem(.flexible(), spacing: DaysTheme.Layout.gridSpacing),
@@ -89,11 +96,19 @@ struct TimelineCardView: View {
                 }
             }
 
-            WordNoteCardView(
-                noteDraft: $noteDraft,
-                canSaveNote: canSaveNote,
+            WordReflectionCardView(
+                wordDraft: $wordDraft,
+                reflectionDraft: $reflectionDraft,
+                canSaveWord: canSaveWord,
+                canSaveReflection: canSaveReflection,
+                showsReflectionComposer: showsReflectionComposer,
+                canStartReflection: canStartReflection,
+                latestRecordedEntry: presentation.latestRecordedEntry,
                 savedWords: presentation.savedWords,
-                onSave: onSave
+                onSaveWord: onSaveWord,
+                onStartReflection: onStartReflection,
+                onSkipReflection: onSkipReflection,
+                onSaveReflection: onSaveReflection
             )
         }
         .padding(DaysTheme.Layout.cardPadding)
@@ -125,11 +140,19 @@ private struct HeroTimeCard: View {
     }
 }
 
-private struct WordNoteCardView: View {
-    @Binding var noteDraft: String
-    let canSaveNote: Bool
+private struct WordReflectionCardView: View {
+    @Binding var wordDraft: String
+    @Binding var reflectionDraft: String
+    let canSaveWord: Bool
+    let canSaveReflection: Bool
+    let showsReflectionComposer: Bool
+    let canStartReflection: Bool
+    let latestRecordedEntry: LatestRecordedEntryPresentation?
     let savedWords: [String]
-    let onSave: () -> Void
+    let onSaveWord: () -> Void
+    let onStartReflection: () -> Void
+    let onSkipReflection: () -> Void
+    let onSaveReflection: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -137,11 +160,11 @@ private struct WordNoteCardView: View {
                 .font(.headline)
 
             HStack(spacing: DaysTheme.Layout.gridSpacing) {
-                TextField("피곤 / 여행 / 겨울", text: $noteDraft)
+                TextField("피곤 / 여행 / 겨울", text: $wordDraft)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .submitLabel(.done)
-                    .onSubmit(onSave)
+                    .onSubmit(onSaveWord)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
                     .background(
@@ -150,11 +173,29 @@ private struct WordNoteCardView: View {
                     )
                     .accessibilityIdentifier("note.input")
 
-                Button("남기기", action: onSave)
+                Button("남기기", action: onSaveWord)
                     .buttonStyle(.borderedProminent)
                     .tint(DaysTheme.Colors.accent.opacity(0.9))
-                    .disabled(canSaveNote == false)
+                    .disabled(canSaveWord == false)
                     .accessibilityIdentifier("note.save")
+            }
+
+            if showsReflectionComposer {
+                ReflectionComposerView(
+                    reflectionDraft: $reflectionDraft,
+                    canSaveReflection: canSaveReflection,
+                    onSkipReflection: onSkipReflection,
+                    onSaveReflection: onSaveReflection
+                )
+            } else if canStartReflection {
+                Button("이유 더하기", action: onStartReflection)
+                    .buttonStyle(.bordered)
+                    .tint(DaysTheme.Colors.primaryText.opacity(0.18))
+                    .accessibilityIdentifier("reflection.reopen")
+            }
+
+            if let latestRecordedEntry {
+                LatestRecordedEntryView(entry: latestRecordedEntry)
             }
 
             if savedWords.isEmpty == false {
@@ -176,6 +217,88 @@ private struct WordNoteCardView: View {
             }
         }
         .padding(.top, 4)
+    }
+}
+
+private struct ReflectionComposerView: View {
+    @Binding var reflectionDraft: String
+    let canSaveReflection: Bool
+    let onSkipReflection: () -> Void
+    let onSaveReflection: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("오늘 왜 이 단어야?")
+                .font(.subheadline.weight(.semibold))
+                .accessibilityIdentifier("reflection.question")
+
+            Text("한 줄이면 충분해요.")
+                .font(DaysTheme.Typography.caption)
+                .foregroundStyle(DaysTheme.Colors.tertiaryText)
+
+            TextField("짧게 남겨도 괜찮아요.", text: $reflectionDraft, axis: .vertical)
+                .textInputAutocapitalization(.sentences)
+                .autocorrectionDisabled()
+                .lineLimit(2...4)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: DaysTheme.Layout.inputCornerRadius, style: .continuous)
+                        .fill(DaysTheme.Colors.cardFill)
+                )
+                .accessibilityIdentifier("reflection.input")
+
+            HStack(spacing: DaysTheme.Layout.gridSpacing) {
+                Button("건너뛰기", action: onSkipReflection)
+                    .buttonStyle(.bordered)
+                    .tint(DaysTheme.Colors.primaryText.opacity(0.18))
+                    .accessibilityIdentifier("reflection.skip")
+
+                Spacer()
+
+                Button("남기기", action: onSaveReflection)
+                    .buttonStyle(.borderedProminent)
+                    .tint(DaysTheme.Colors.accent.opacity(0.9))
+                    .disabled(canSaveReflection == false)
+                    .accessibilityIdentifier("reflection.save")
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: DaysTheme.Layout.innerCornerRadius, style: .continuous)
+                .fill(DaysTheme.Colors.cardInnerFill)
+        )
+    }
+}
+
+private struct LatestRecordedEntryView: View {
+    let entry: LatestRecordedEntryPresentation
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("최근 남긴 기록")
+                .font(DaysTheme.Typography.caption)
+                .foregroundStyle(DaysTheme.Colors.tertiaryText)
+
+            Text(entry.word)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(DaysTheme.Colors.primaryText)
+
+            if entry.reflection.isEmpty == false {
+                Text(entry.reflection)
+                    .font(DaysTheme.Typography.callout)
+                    .foregroundStyle(DaysTheme.Colors.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: DaysTheme.Layout.innerCornerRadius, style: .continuous)
+                .fill(DaysTheme.Colors.cardInnerFill)
+        )
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("latest.record")
     }
 }
 
