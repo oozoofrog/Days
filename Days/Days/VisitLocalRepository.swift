@@ -7,7 +7,7 @@ protocol VisitLocalRepository {
     func fetchMoments() throws -> [VisitMoment]
     @discardableResult
     func recordVisit(at date: Date) throws -> VisitMoment
-    func updateNote(for visitID: UUID, note: String) throws
+    func updateVisitContent(for visitID: UUID, word: String, reflection: String) throws
 }
 
 @MainActor
@@ -48,7 +48,7 @@ final class SwiftDataVisitLocalRepository: VisitLocalRepository {
         return entry.moment
     }
 
-    func updateNote(for visitID: UUID, note: String) throws {
+    func updateVisitContent(for visitID: UUID, word: String, reflection: String) throws {
         let predicate = #Predicate<VisitEntry> { entry in
             entry.visitID == visitID
         }
@@ -56,11 +56,12 @@ final class SwiftDataVisitLocalRepository: VisitLocalRepository {
         descriptor.fetchLimit = 1
 
         guard let entry = try context.fetch(descriptor).first else {
-            logger.error("Missing visit entry for note update")
+            logger.error("Missing visit entry for content update")
             return
         }
 
-        entry.note = note.normalizedVisitWord
+        entry.note = word.normalizedVisitWord
+        entry.reflection = reflection.normalizedVisitReflection
         try context.save()
     }
 }
