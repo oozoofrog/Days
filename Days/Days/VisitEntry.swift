@@ -6,18 +6,25 @@ final class VisitEntry {
     @Attribute(.unique) var visitID: UUID
     var visitedAt: Date
     var note: String
+    var reflection: String
 
-    init(visitID: UUID = UUID(), visitedAt: Date, note: String = "") {
+    init(visitID: UUID = UUID(), visitedAt: Date, note: String = "", reflection: String = "") {
         self.visitID = visitID
         self.visitedAt = visitedAt
         self.note = note
+        self.reflection = reflection
     }
 }
 
 struct VisitMoment: Identifiable, Equatable, Sendable {
     let id: UUID
     let visitedAt: Date
-    let note: String
+    let word: String
+    let reflection: String
+
+    var hasRecordedContent: Bool {
+        word.isEmpty == false || reflection.isEmpty == false
+    }
 }
 
 enum ReturnWindow: String, CaseIterable, Sendable {
@@ -62,10 +69,12 @@ struct VisitSnapshot: Equatable, Sendable {
     var isEmpty: Bool { moments.isEmpty }
     var visitCount: Int { moments.count }
     var currentVisitID: UUID? { moments.last?.id }
-    var currentNote: String { moments.last?.note ?? "" }
+    var currentWord: String { moments.last?.word ?? "" }
+    var currentReflection: String { moments.last?.reflection ?? "" }
     var firstOpenedAt: Date? { moments.first?.visitedAt }
     var lastOpenedAt: Date? { moments.last?.visitedAt }
     var previousOpenedAt: Date? { moments.dropLast().last?.visitedAt }
+    var latestWrittenMoment: VisitMoment? { moments.reversed().first(where: \.hasRecordedContent) }
 
     var totalElapsed: TimeInterval? {
         guard let firstOpenedAt, let lastOpenedAt else { return nil }
@@ -89,7 +98,7 @@ struct VisitSnapshot: Equatable, Sendable {
     var savedWords: [String] {
         var seen = Set<String>()
         return moments.reversed().compactMap { moment in
-            let word = moment.note.normalizedVisitWord
+            let word = moment.word.normalizedVisitWord
             guard word.isEmpty == false, seen.insert(word).inserted else {
                 return nil
             }
@@ -112,7 +121,12 @@ struct VisitSnapshot: Equatable, Sendable {
 
 extension VisitEntry {
     var moment: VisitMoment {
-        VisitMoment(id: visitID, visitedAt: visitedAt, note: note.normalizedVisitWord)
+        VisitMoment(
+            id: visitID,
+            visitedAt: visitedAt,
+            word: note.normalizedVisitWord,
+            reflection: reflection.normalizedVisitReflection
+        )
     }
 }
 
@@ -123,5 +137,13 @@ extension String {
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         return String(collapsed.prefix(18))
+    }
+
+    var normalizedVisitReflection: String {
+        let collapsed = split(whereSeparator: { $0.isWhitespace || $0.isNewline })
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return String(collapsed.prefix(120))
     }
 }
