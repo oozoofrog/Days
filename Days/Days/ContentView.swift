@@ -21,9 +21,16 @@ struct ContentView: View {
                     case .timeline(let presentation):
                         TimelineCardView(
                             presentation: presentation,
-                            noteDraft: $bindableViewModel.noteDraft,
-                            canSaveNote: viewModel.canSaveNote,
-                            onSave: viewModel.saveCurrentNote
+                            wordDraft: $bindableViewModel.wordDraft,
+                            reflectionDraft: $bindableViewModel.reflectionDraft,
+                            canSaveWord: viewModel.canSaveWord,
+                            canSaveReflection: viewModel.canSaveReflection,
+                            showsReflectionComposer: viewModel.showsReflectionComposer,
+                            canStartReflection: viewModel.canStartReflection,
+                            onSaveWord: viewModel.saveCurrentWord,
+                            onStartReflection: viewModel.beginReflectionEntry,
+                            onSkipReflection: viewModel.skipReflectionEntry,
+                            onSaveReflection: viewModel.saveCurrentReflection
                         )
                     case .error(let message):
                         ErrorCardView(message: message, onRetry: viewModel.reload)

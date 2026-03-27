@@ -12,18 +12,38 @@ final class DaysTimelineViewModel {
 
     private var hasSeenActivePhase = false
     private var hasEnteredBackgroundSinceLastVisit = false
+    private var isReflectionComposerDismissed = false
     private(set) var snapshot = VisitSnapshot(moments: [])
     private(set) var presentation: JourneyPresentation = .loading
-    var noteDraft = ""
+    var wordDraft = ""
+    var reflectionDraft = ""
 
     init(repository: any VisitLocalRepository, now: @escaping () -> Date = Date.init) {
         self.repository = repository
         self.now = now
     }
 
-    var canSaveNote: Bool {
+    var canSaveWord: Bool {
         guard case .timeline = presentation else { return false }
-        return noteDraft.normalizedVisitWord != snapshot.currentNote.normalizedVisitWord
+        return wordDraft.normalizedVisitWord != snapshot.currentWord.normalizedVisitWord
+    }
+
+    var canSaveReflection: Bool {
+        guard case .timeline = presentation else { return false }
+        return reflectionDraft.normalizedVisitReflection != snapshot.currentReflection.normalizedVisitReflection
+    }
+
+    var showsReflectionComposer: Bool {
+        guard case .timeline = presentation else { return false }
+
+        let hasWord = wordDraft.normalizedVisitWord.isEmpty == false
+        let hasReflection = reflectionDraft.normalizedVisitReflection.isEmpty == false
+        return hasWord && (isReflectionComposerDismissed == false || hasReflection)
+    }
+
+    var canStartReflection: Bool {
+        guard case .timeline = presentation else { return false }
+        return wordDraft.normalizedVisitWord.isEmpty == false && showsReflectionComposer == false
     }
 
     var backgroundLevel: Int {
@@ -55,8 +75,8 @@ final class DaysTimelineViewModel {
             return
         }
 
-        if newPhase == .background, canSaveNote {
-            saveCurrentNote()
+        if newPhase == .background, canSaveWord || canSaveReflection {
+            saveCurrentVisit(errorMessage: "기록을 남기지 못했어요. 잠시 후 다시 시도해 주세요.")
             return
         }
 
@@ -69,17 +89,22 @@ final class DaysTimelineViewModel {
         refreshPresentation()
     }
 
-    func saveCurrentNote() {
-        guard let currentVisitID = snapshot.currentVisitID else { return }
+    func saveCurrentWord() {
+        isReflectionComposerDismissed = false
+        saveCurrentVisit(errorMessage: "한 단어를 남기지 못했어요. 잠시 후 다시 시도해 주세요.")
+    }
 
-        do {
-            try repository.updateNote(for: currentVisitID, note: noteDraft)
-            logger.debug("Saved visit note")
-            refreshPresentation()
-        } catch {
-            logger.error("Failed to save visit note: \(error.localizedDescription, privacy: .public)")
-            presentation = .error("한 단어를 남기지 못했어요. 잠시 후 다시 시도해 주세요.")
-        }
+    func saveCurrentReflection() {
+        saveCurrentVisit(errorMessage: "한 줄 이유를 남기지 못했어요. 잠시 후 다시 시도해 주세요.")
+    }
+
+    func skipReflectionEntry() {
+        reflectionDraft = snapshot.currentReflection
+        isReflectionComposerDismissed = true
+    }
+
+    func beginReflectionEntry() {
+        isReflectionComposerDismissed = false
     }
 
     private func shouldRecordVisit(for newPhase: ScenePhase) -> Bool {
@@ -104,11 +129,33 @@ final class DaysTimelineViewModel {
         }
     }
 
+    private func saveCurrentVisit(errorMessage: String) {
+        guard let currentVisitID = snapshot.currentVisitID else { return }
+
+        do {
+            try repository.updateVisitContent(
+                for: currentVisitID,
+                word: wordDraft,
+                reflection: reflectionDraft
+            )
+            logger.debug("Saved visit content")
+            refreshPresentation()
+        } catch {
+            logger.error("Failed to save visit content: \(error.localizedDescription, privacy: .public)")
+            presentation = .error(errorMessage)
+        }
+    }
+
     private func refreshPresentation() {
         do {
+            let previousVisitID = snapshot.currentVisitID
             snapshot = VisitSnapshot(moments: try repository.fetchMoments())
+            if snapshot.currentVisitID != previousVisitID {
+                isReflectionComposerDismissed = false
+            }
             presentation = TimelineComposer.makePresentation(from: snapshot)
-            noteDraft = snapshot.currentNote
+            wordDraft = snapshot.currentWord
+            reflectionDraft = snapshot.currentReflection
         } catch {
             logger.error("Failed to load visits: \(error.localizedDescription, privacy: .public)")
             presentation = .error("기록을 불러오지 못했어요.")

@@ -12,6 +12,11 @@ struct StatCard: Identifiable, Equatable {
     var id: String { title }
 }
 
+struct LatestRecordedEntryPresentation: Equatable {
+    let word: String
+    let reflection: String
+}
+
 struct TimelinePresentation: Equatable {
     let headline: String
     let subtitle: String
@@ -20,7 +25,7 @@ struct TimelinePresentation: Equatable {
     let rhythmLine: String?
     let statCards: [StatCard]
     let savedWords: [String]
-    let currentNote: String
+    let latestRecordedEntry: LatestRecordedEntryPresentation?
     let backgroundLevel: Int
 }
 
@@ -59,7 +64,9 @@ enum TimelineComposer {
                 rhythmLine: rhythmLine(for: snapshot, calendar: calendar),
                 statCards: statCards,
                 savedWords: snapshot.savedWords,
-                currentNote: snapshot.currentNote,
+                latestRecordedEntry: snapshot.latestWrittenMoment.map {
+                    LatestRecordedEntryPresentation(word: $0.word, reflection: $0.reflection)
+                },
                 backgroundLevel: backgroundLevel(for: snapshot)
             )
         )
