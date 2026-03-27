@@ -17,7 +17,7 @@ final class DaysUITests: XCTestCase {
     }
 
     @MainActor
-    func testTimelineScenarioShowsHeadlineAndNoteField() throws {
+    func testTimelineScenarioShowsHeadlineAndWordField() throws {
         let app = makeApp(scenario: "timeline")
 
         app.launch()
@@ -25,6 +25,26 @@ final class DaysUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["timeline.headline"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.textFields["note.input"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.buttons["note.save"].exists)
+        XCTAssertTrue(app.otherElements["latest.record"].exists)
+    }
+
+    @MainActor
+    func testTimelineScenarioSavingWordRevealsReflectionComposer() throws {
+        let app = makeApp(scenario: "timeline")
+
+        app.launch()
+
+        let wordField = app.textFields["note.input"]
+        XCTAssertTrue(wordField.waitForExistence(timeout: 2))
+        wordField.tap()
+        wordField.typeText("노을")
+
+        app.buttons["note.save"].tap()
+
+        XCTAssertTrue(app.staticTexts["reflection.question"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.textFields["reflection.input"].exists)
+        XCTAssertTrue(app.buttons["reflection.save"].exists)
+        XCTAssertTrue(app.buttons["reflection.skip"].exists)
     }
 
     @MainActor
