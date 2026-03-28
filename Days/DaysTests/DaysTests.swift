@@ -226,6 +226,30 @@ struct DaysTests {
         #expect(presentation.latestRecordedEntry == LatestRecordedEntryPresentation(word: "여행", reflection: "낯선 공기를 오래 맡고 돌아온 날이었어요."))
     }
 
+    @Test func shareCardExporterProducesPNGData() throws {
+        let presentation = TimelinePresentation(
+            headline: "처음 만난 뒤 3일 11시간이 지났습니다.",
+            subtitle: "지난 방문 이후 2일 7시간 만에 돌아왔어요.",
+            visitCountLine: "당신은 3번째로 돌아왔습니다.",
+            translatedLine: "해가 3번 졌습니다.",
+            rhythmLine: "이번에는 지난번보다 조금 더 늦게 돌아왔네요.",
+            statCards: [
+                StatCard(title: "지난 방문 이후", value: "2일 7시간"),
+                StatCard(title: "가장 긴 공백", value: "2일 7시간")
+            ],
+            savedWords: ["노을", "여행"],
+            latestRecordedEntry: LatestRecordedEntryPresentation(
+                word: "노을",
+                reflection: "생각보다 오래 붉은 하늘을 보고 있었어요."
+            ),
+            backgroundLevel: 10
+        )
+
+        let data = try ShareCardExporter.pngData(for: presentation)
+
+        #expect(data.isEmpty == false)
+    }
+
     @Test func visitDateCorrectionMakesMomentsMonotonic() {
         let firstVisit = makeDate(year: 2026, month: 3, day: 8, hour: 9, minute: 0)
         let earlierVisit = makeDate(year: 2026, month: 3, day: 8, hour: 8, minute: 30)
