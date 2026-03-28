@@ -66,6 +66,7 @@ struct TimelineCardView: View {
     let onStartReflection: () -> Void
     let onSkipReflection: () -> Void
     let onSaveReflection: () -> Void
+    let onShare: () -> Void
 
     private let columns = [
         GridItem(.flexible(), spacing: DaysTheme.Layout.gridSpacing),
@@ -96,6 +97,8 @@ struct TimelineCardView: View {
                 }
             }
 
+            ShareCardActionView(onShare: onShare)
+
             WordReflectionCardView(
                 wordDraft: $wordDraft,
                 reflectionDraft: $reflectionDraft,
@@ -114,6 +117,22 @@ struct TimelineCardView: View {
         .padding(DaysTheme.Layout.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(DaysCardBackground())
+    }
+}
+
+private struct ShareCardActionView: View {
+    let onShare: () -> Void
+
+    var body: some View {
+        Button(action: onShare) {
+            Label("공유 카드 만들기", systemImage: "square.and.arrow.up")
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+        }
+        .buttonStyle(.bordered)
+        .tint(DaysTheme.Colors.primaryText.opacity(0.18))
+        .accessibilityIdentifier("timeline.share")
     }
 }
 
