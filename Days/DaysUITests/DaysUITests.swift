@@ -25,6 +25,7 @@ final class DaysUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["timeline.headline"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.textFields["note.input"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.buttons["note.save"].exists)
+        XCTAssertTrue(app.buttons["timeline.share"].exists)
         XCTAssertTrue(app.otherElements["latest.record"].exists)
     }
 
